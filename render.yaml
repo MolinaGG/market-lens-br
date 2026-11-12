@@ -1,0 +1,24 @@
+# Blueprint do backend no Render (plano gratuito).
+# Observação: o plano gratuito hiberna após inatividade e o disco é temporário.
+services:
+  - type: web
+    name: market-lens-br-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install .
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: APIFY_API_TOKEN
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CACHE_BACKEND
+        value: none
