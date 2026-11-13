@@ -7,18 +7,10 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install .
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python -m app.data.demo && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
-      - key: CORS_ORIGINS
-        sync: false
-      - key: APIFY_API_TOKEN
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: DATABASE_URL
-        sync: false
       - key: CACHE_BACKEND
         value: none

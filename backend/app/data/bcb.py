@@ -5,7 +5,7 @@ from decimal import Decimal
 from app.data.models import Observation
 
 
-SGS_NAMES = {1: ("USD/BRL compra", "BRL por USD"), 11: ("Selic diária", "% a.d."), 433: ("IPCA mensal", "% a.m.")}
+SGS_NAMES = {1: ("USD/BRL venda", "BRL por USD"), 11: ("Selic diária", "% a.d."), 433: ("IPCA mensal", "% a.m.")}
 
 
 def sgs_url(series_number: int) -> str:

@@ -30,7 +30,7 @@ def fetch_sources() -> tuple[bytes, bytes, dict[int, bytes], bytes]:
         prices = get(PRICES_URL)
         coupons = get(COUPONS_URL)
         bcb = {}
-        for number in (1, 11, 433):
+        for number in (1, 11):
             url = f"{sgs_url(number)}&dataInicial={start:%d/%m/%Y}&dataFinal={today:%d/%m/%Y}"
             bcb[number] = get(url)
         comunicados = get(COMUNICADOS_URL)
