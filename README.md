@@ -76,8 +76,12 @@ Os contratos estão disponíveis em `/api/catalog`, `/api/series/{series_id}`, `
 
 Cotações de ações não entram no retrato público enquanto não houver direitos claros de redistribuição. Séries mensais não são preenchidas artificialmente na regressão diária. O desenho está em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e as fontes e licenças em [docs/FONTES.md](docs/FONTES.md).
 
-## Publicação
+## Publicação gratuita
 
-`render.yaml` prepara o backend e descompacta o retrato público na inicialização. `frontend/vercel.json` configura o frontend; a URL de destino `/api` deve corresponder ao serviço Render criado. Nenhuma chave de Apify ou Groq é necessária para a demonstração atual. A publicação externa depende da configuração das contas de hospedagem.
+`render.yaml` define dois serviços no Render: uma API Python gratuita e um site estático gratuito. A API descompacta os retratos públicos na inicialização; o site encaminha `/api/*` ao serviço `market-lens-br-api`. A importação de ações está explicitamente desativada na hospedagem pública. Nenhuma chave de Apify ou Groq é necessária.
+
+Para publicar, conecte o repositório ao Render, crie uma **Blueprint Instance** a partir de `render.yaml` na branch desejada e escolha os serviços gratuitos descritos no arquivo. Confira as URLs geradas: se a API receber uma URL diferente de `https://market-lens-br-api.onrender.com`, atualize a rota `/api/*` no Blueprint antes de compartilhar o site. Após a implantação, verifique `/api/health` e `/api/catalog` pela URL do site, além das seções de regressão, notícias e commodities. O site estático permanece disponível; a API gratuita pode levar cerca de um minuto para acordar após 15 minutos sem acessos. O disco da API é temporário, por isso apenas os retratos versionados são usados na demonstração.
+
+`frontend/vercel.json` permanece como opção alternativa de hospedagem do site estático; o plano Hobby da Vercel possui restrição de uso pessoal não comercial.
 
 O código segue [LICENSE](LICENSE). Os dados dos retratos têm licenças próprias por fonte, detalhadas em [docs/FONTES.md](docs/FONTES.md), com atribuição e links de origem.

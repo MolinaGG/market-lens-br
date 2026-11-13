@@ -1,5 +1,5 @@
-# Blueprint do backend no Render (plano gratuito).
-# Observação: o plano gratuito hiberna após inatividade e o disco é temporário.
+# Demonstração pública em dois serviços gratuitos do Render.
+# A API hiberna após inatividade; os retratos SQLite são restaurados na inicialização.
 services:
   - type: web
     name: market-lens-br-api
@@ -11,6 +11,21 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12"
+        value: "3.12.11"
       - key: CACHE_BACKEND
         value: none
+      - key: LOCAL_IMPORT_ENABLED
+        value: "false"
+  - type: web
+    name: market-lens-br-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://market-lens-br-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
