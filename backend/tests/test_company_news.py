@@ -142,6 +142,28 @@ def test_filing_impact_uses_only_pre_event_factor_model():
     assert result.coefficients["BCB:SGS:1"] == pytest.approx(2)
 
 
+def test_cash_distribution_changes_only_total_mode_for_the_same_event_sessions():
+    filing = next(item for item in parse_cvm_ipe(cvm_zip(), FETCHED) if item.status == "refiled")
+    filing = replace(filing, published_at=datetime(2026, 1, 31, tzinfo=timezone.utc))
+    points = []
+    for index in range(55):
+        day = date(2026, 1, 1) + timedelta(days=index)
+        factor = (index % 7 - 3) / 1000
+        price = 0.001 + 2 * factor + (0.03 if index == 31 else 0)
+        total = price + (0.02 if index == 31 else 0)
+        points.append(ReturnPoint(day, price, total, {"BCB:SGS:1": factor}))
+    frame = ReturnFrame("EQUITY:PETR4", tuple(points))
+    price_study = study_filing_impact(filing, frame, ("BCB:SGS:1",), lookback=30, return_mode="price")
+    total_study = study_filing_impact(filing, frame, ("BCB:SGS:1",), lookback=30, return_mode="total")
+    price_window = price_study.event.windows[1]
+    total_window = total_study.event.windows[1]
+    assert price_window.session_dates == total_window.session_dates == (date(2026, 2, 1),)
+    assert total_window.observed_return - price_window.observed_return == pytest.approx(0.02)
+    assert total_window.abnormal_return - price_window.abnormal_return == pytest.approx(0.02)
+    no_distribution = ReturnFrame(frame.instrument_id, tuple(replace(point, total_return=point.price_return) for point in points))
+    assert study_filing_impact(filing, no_distribution, ("BCB:SGS:1",), lookback=30, return_mode="price").event.windows[1] == study_filing_impact(filing, no_distribution, ("BCB:SGS:1",), lookback=30, return_mode="total").event.windows[1]
+
+
 def test_local_company_impact_api_links_filing_to_post_event_returns(tmp_path, monkeypatch):
     from tests.test_research_api import research_client
 
@@ -165,10 +187,15 @@ def test_local_company_impact_api_links_filing_to_post_event_returns(tmp_path, m
     response = client.get("/api/local/equity/PETR4/news-impact")
     assert response.status_code == 200
     body = response.json()
-    assert len(body["events"]) == 1
-    assert body["events"][0]["effective_session"] == "2026-02-01"
-    assert body["events"][0]["windows"]["1"]["available"]
-    assert body["events"][0]["source_url"].startswith("https://www.rad.cvm.gov.br/")
+    assert len(body["events"]) == 2
+    measured = next(item for item in body["events"] if item["category"] == "Fato Relevante")
+    cancelled = next(item for item in body["events"] if item["category"] == "Comunicado ao Mercado")
+    assert measured["effective_session"] == "2026-02-01"
+    assert measured["windows"]["1"]["available"]
+    assert measured["price_windows"]["1"]["session_dates"] == measured["windows"]["1"]["session_dates"]
+    assert cancelled["windows"]["1"]["reason"] == "filing_cancelled"
+    assert "price_cohort" in body
+    assert measured["source_url"].startswith("https://www.rad.cvm.gov.br/")
     no_flows = "ticker,ex_date,kind,amount,split_factor\n"
     assert client.post("/api/local/equity/import", json={"prices_csv": "\n".join(prices), "actions_csv": no_flows}).status_code == 200
     assert client.get("/api/local/equity/PETR4/regression").status_code == 422

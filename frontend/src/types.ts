@@ -149,6 +149,7 @@ export type FilingImpact = {
   coefficients: Record<string, number> | null;
   reason: string | null;
   windows: Record<string, EventWindow>;
+  price_windows: Record<string, EventWindow>;
 };
 
 export type LocalNewsImpact = {
@@ -157,5 +158,6 @@ export type LocalNewsImpact = {
   factor_ids: string[];
   events: FilingImpact[];
   cohort: Events["cohort"];
+  price_cohort: Events["cohort"];
   method_note: string;
 };

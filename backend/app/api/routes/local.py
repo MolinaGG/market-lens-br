@@ -127,20 +127,23 @@ def equity_news_impact(request: Request, ticker: str, factor_ids: list[str] | No
         if not factors or any(factor not in available for factor in factors):
             _error(422, "factor_not_found", "Uma variável selecionada não está no retrato público.")
         frame = build_return_frame(imported.prices, imported.cash_flows, {factor: store.observations(factor) for factor in factors}, splits=imported.splits)
-        filings = [item for item in news.filings(imported.ticker, 500) if item.category == "Fato Relevante" and item.impact_eligible][:limit]
-        impacts = [study_filing_impact(filing, frame, tuple(factors)) for filing in filings]
+        filings = news.filings(imported.ticker, limit)
+        impacts = [study_filing_impact(filing, frame, tuple(factors), return_mode="total") for filing in filings]
+        price_impacts = [study_filing_impact(filing, frame, tuple(factors), return_mode="price") for filing in filings]
         event_rows = []
-        for filing, impact in zip(filings, impacts):
+        for filing, impact, price_impact in zip(filings, impacts, price_impacts):
             event_rows.append({
                 "filing_id": filing.filing_id, "title": filing.title, "category": filing.category,
                 "status": filing.status, "source_url": filing.source_url, "published_at": filing.published_at,
                 "effective_session": impact.event.effective_session, "train_count": impact.train_count,
                 "coefficients": impact.coefficients, "reason": impact.reason,
                 "windows": {horizon: {**asdict(window), "available": window.available} for horizon, window in impact.event.windows.items()},
+                "price_windows": {horizon: {**asdict(window), "available": window.available} for horizon, window in price_impact.event.windows.items()},
             })
         return {
             "version": f"{store.snapshot_version()}+{news.version()}+local-1", "ticker": imported.ticker,
             "factor_ids": factors, "events": event_rows,
             "cohort": {horizon: asdict(summarize_cohort([item.event for item in impacts], horizon)) for horizon in (1, 3, 5)},
-            "method_note": "Cada Fato Relevante é comparado a uma previsão de fatores ajustada somente com até 60 sessões anteriores; documentos sem horário entram no pregão seguinte. A diferença é descritiva, não causal. Metadados GDELT não entram no cálculo.",
+            "price_cohort": {horizon: asdict(summarize_cohort([item.event for item in price_impacts], horizon)) for horizon in (1, 3, 5)},
+            "method_note": "Cada divulgação oficial CVM é comparada em retorno de preço e retorno total bruto a modelos de fatores ajustados somente com até 60 sessões anteriores. Documentos sem horário entram no pregão seguinte; cancelamentos não recebem medida. A diferença é descritiva, não causal. Metadados GDELT não entram no cálculo.",
         }

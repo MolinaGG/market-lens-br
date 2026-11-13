@@ -9,12 +9,13 @@ Pesquisa quantitativa reproduzível sobre títulos públicos, fatores de mercado
 - Catálogo de títulos do Tesouro, USD/BRL, Selic e Brent diários, com fonte, unidade, frequência, período e versão do retrato. Ouro, cobre, café arábica e Brent do Banco Mundial aparecem em uma seção mensal separada.
 - Gráfico de retorno acumulado com e sem cupons; pagamentos no intervalo entre duas cotações são atribuídos ao retorno desse intervalo.
 - Regressão OLS com coeficientes, intervalos de 95%, R², erro e validação temporal fora da amostra. O botão destaca cada modo sem trocar as datas ou os fatores.
+- Guias visíveis explicam observações, índice base 100, R², coeficientes, RMSE, intervalos e diferenças em pontos percentuais; a interpretação acompanha o modo e a janela escolhidos.
 - Comunicados oficiais do Copom ligados a janelas posteriores de 1, 3 e 5 pregões, comparados a outro título do Tesouro. A página mostra a fonte, o tamanho da amostra e a incerteza do conjunto de eventos.
 - Fatos relevantes e comunicados de seis companhias no arquivo público da CVM, com links aos documentos originais e contexto de cobertura detectada pelo GDELT.
-- Importação **somente local** de CSVs de preços, desdobramentos, dividendos e JCP. A regressão mantém as mesmas datas e fatores nos modos sem e com proventos; fatos relevantes podem ser ligados ao retorno posterior ajustado por um modelo treinado apenas em sessões anteriores.
+- Importação **somente local** de CSVs de preços, desdobramentos, dividendos e JCP. A regressão mantém as mesmas datas e fatores nos modos sem e com proventos. Cada fato relevante ou comunicado ao mercado elegível da CVM pode ser ligado ao retorno posterior da ação nos dois modos, diante de modelos ajustados apenas com sessões anteriores.
 - Retratos públicos congelados de mercado e notícias em `backend/demo/`, com comandos separados para atualização.
 
-O projeto é uma análise histórica exploratória. Diferenças após uma divulgação são associações temporais, não estimativas causais nem recomendações de investimento. A cobertura GDELT é contexto; o cálculo de impacto de ações usa apenas fatos relevantes da CVM e preços importados pelo pesquisador. O método completo está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
+O projeto é uma análise histórica exploratória. Diferenças após uma divulgação são associações temporais, não estimativas causais nem recomendações de investimento. A cobertura GDELT é contexto: sem horário de publicação confirmado, cada link permanece sem impacto quantitativo atribuído. O cálculo de ações usa divulgações oficiais da CVM e preços importados pelo pesquisador. O método completo está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
 ## Executar localmente
 

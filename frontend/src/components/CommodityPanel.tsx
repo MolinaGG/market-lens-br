@@ -33,6 +33,7 @@ export function CommodityPanel({ factors }: { factors: SeriesInfo[] }) {
         <div><b>{previous ? pct(latest.value / previous.value - 1) : "—"}</b><span>vs. mês anterior</span></div>
       </div>;
     })}</div>
+    <div className="reading-guide commodity-guide" aria-label="Como interpretar commodities"><div className="reading-guide-title"><span>COMO INTERPRETAR</span><h3>Preços e variação mensal</h3></div><div className="reading-guide-grid"><div><strong>Valor exibido</strong><p>É a média nominal em dólares do mês indicado, na unidade de cada commodity. Não é a cotação de um dia específico.</p></div><div><strong>Variação mensal</strong><p>Compara a média do mês mais recente com a do mês anterior. Uma alta de 5% significa que a média foi 5% maior; não demonstra por si só uma relação com ações ou títulos.</p></div></div></div>
     <p className="method-inline">O mês identifica o período da média, não a data em que o dado se tornou público. Essas séries não entram na regressão diária; não há preenchimento de dias ou uso antecipado de informação. <a href="https://www.worldbank.org/en/research/commodity-markets" target="_blank" rel="noreferrer">Fonte: Banco Mundial ↗</a></p>
   </section>;
 }

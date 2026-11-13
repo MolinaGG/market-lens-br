@@ -168,6 +168,7 @@ class FilingImpactSchema(BaseModel):
     coefficients: dict[str, float] | None
     reason: str | None
     windows: dict[int, EventWindowSchema]
+    price_windows: dict[int, EventWindowSchema]
 
 
 class LocalNewsImpactSchema(BaseModel):
@@ -176,4 +177,5 @@ class LocalNewsImpactSchema(BaseModel):
     factor_ids: list[str]
     events: list[FilingImpactSchema]
     cohort: dict[int, CohortSchema]
+    price_cohort: dict[int, CohortSchema]
     method_note: str

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
 
 import numpy as np
 
@@ -27,7 +28,22 @@ def study_filing_impact(
     factor_ids: tuple[str, ...],
     lookback: int = 60,
     horizons: tuple[int, ...] = (1, 3, 5),
+    return_mode: Literal["price", "total"] = "total",
 ) -> FilingImpact:
+    if return_mode not in {"price", "total"}:
+        raise ValueError("return_mode must be price or total")
+    target_frame = ReturnFrame(
+        frame.instrument_id,
+        tuple(
+            ReturnPoint(
+                point.date,
+                point.price_return if return_mode == "price" else point.total_return,
+                point.price_return if return_mode == "price" else point.total_return,
+                point.factor_changes,
+            )
+            for point in frame.points
+        ),
+    )
     event = MarketEvent(
         filing.filing_id, f"company:{filing.ticker}", filing.title,
         filing.published_at, filing.publication_time_known, filing.source_url, filing.fetched_at,
@@ -36,7 +52,7 @@ def study_filing_impact(
     if not filing.publication_time_known:
         from datetime import timedelta
         earliest += timedelta(days=1)
-    pre = [point for point in frame.points if point.date < earliest and all(factor in point.factor_changes for factor in factor_ids)][-lookback:]
+    pre = [point for point in target_frame.points if point.date < earliest and all(factor in point.factor_changes for factor in factor_ids)][-lookback:]
     unavailable = None
     if not filing.impact_eligible:
         unavailable = "filing_cancelled"
@@ -57,11 +73,11 @@ def study_filing_impact(
         return FilingImpact(filing.filing_id, filing.ticker, empty, len(pre), None, "rank_deficient_factors")
     beta, *_ = np.linalg.lstsq(x, y, rcond=None)
     benchmark_points = []
-    for point in frame.points:
+    for point in target_frame.points:
         if not all(factor in point.factor_changes for factor in factor_ids):
             continue
         prediction = float(beta[0] + sum(beta[index + 1] * point.factor_changes[factor] for index, factor in enumerate(factor_ids)))
         benchmark_points.append(ReturnPoint(point.date, prediction, prediction, point.factor_changes))
     baseline = ReturnFrame("PRE_EVENT_FACTOR_MODEL", tuple(benchmark_points))
-    result = study_event(event, frame, baseline, horizons=horizons, min_pre=20)
+    result = study_event(event, target_frame, baseline, horizons=horizons, min_pre=20)
     return FilingImpact(filing.filing_id, filing.ticker, result, len(pre), dict(zip(("intercept", *factor_ids), (float(value) for value in beta))), None)
