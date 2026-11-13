@@ -23,4 +23,17 @@ export const api = {
     const params = new URLSearchParams({ topic: "copom", instrument_id: id, benchmark_id: benchmark, limit: "12" });
     return get<Events>(`/api/events?${params}`, signal);
   },
+  localStatus: () => get<{ enabled: boolean }>("/api/local/status"),
+  localImport: async (pricesCsv: string, actionsCsv: string) => {
+    const response = await fetch(`${base}/api/local/equity/import`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prices_csv: pricesCsv, actions_csv: actionsCsv }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.detail?.message ?? "Não foi possível importar os arquivos.");
+    return data as { ticker: string; price_count: number; action_count: number; rights: string };
+  },
+  localSeries: (ticker: string) => get<Series>(`/api/local/equity/${encodeURIComponent(ticker)}/series`),
+  localRegression: (ticker: string, factors: string[]) => {
+    const params = new URLSearchParams();
+    factors.forEach((factor) => params.append("factor_ids", factor));
+    return get<Regression>(`/api/local/equity/${encodeURIComponent(ticker)}/regression?${params}`);
+  },
 };

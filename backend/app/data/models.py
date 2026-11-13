@@ -27,6 +27,16 @@ class CashFlow:
 
 
 @dataclass(frozen=True)
+class SplitEvent:
+    instrument_id: str
+    date: date
+    factor: Decimal
+    source_url: str
+    fetched_at: datetime
+    normalization_version: str = NORMALIZATION_VERSION
+
+
+@dataclass(frozen=True)
 class MarketEvent:
     event_id: str
     topic: str

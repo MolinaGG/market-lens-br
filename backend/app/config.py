@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     app_name: str = "market-lens-br"
     database_url: str = "sqlite:///./data/market_lens.db"
+    local_equity_database_url: str = "sqlite:///./data/local_equity.db"
+    local_import_enabled: bool = False
 
     # Integrações: chaves ficam só no ambiente, nunca no código.
     apify_api_token: str | None = None

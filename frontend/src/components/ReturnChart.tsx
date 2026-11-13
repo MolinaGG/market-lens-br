@@ -4,6 +4,7 @@ type Props = {
   points: ReturnPoint[];
   couponDates: string[];
   mode: "price" | "total";
+  cashLabel?: string;
 };
 
 const W = 900;
@@ -18,7 +19,7 @@ function indexed(points: ReturnPoint[], key: "price_return" | "total_return") {
   });
 }
 
-export function ReturnChart({ points, couponDates, mode }: Props) {
+export function ReturnChart({ points, couponDates, mode, cashLabel = "cupons" }: Props) {
   if (points.length < 2) return <p className="empty">Não há observações suficientes para o gráfico.</p>;
   const raw = indexed(points, "price_return");
   const total = indexed(points, "total_return");
@@ -32,7 +33,7 @@ export function ReturnChart({ points, couponDates, mode }: Props) {
   const couponIndices = couponDates.map((date) => points.findIndex((point) => point.date >= date)).filter((index) => index >= 0);
   return (
     <div className="chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Índice acumulado do retorno de preço e do retorno com cupons, base 100">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Índice acumulado do retorno de preço e do retorno com ${cashLabel}, base 100`}>
         {ticks.map((tick) => {
           const value = min + range * tick / 4;
           const yy = y(value);
@@ -43,7 +44,7 @@ export function ReturnChart({ points, couponDates, mode }: Props) {
         <path d={path(total)} className={`chart-line adjusted ${mode === "total" ? "active" : ""}`} />
         {[0, Math.floor((points.length - 1) / 2), points.length - 1].map((index) => <text key={index} x={x(index)} y={H - 7} textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"} className="chart-axis">{new Date(`${points[index].date}T12:00:00`).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</text>)}
       </svg>
-      <div className="chart-legend"><span><i className="line-swatch raw" />Só preço</span><span><i className="line-swatch adjusted" />Preço + cupons</span><span><i className="coupon-swatch" />Pagamento de cupom</span></div>
+      <div className="chart-legend"><span><i className="line-swatch raw" />Só preço</span><span><i className="line-swatch adjusted" />Preço + {cashLabel}</span><span><i className="coupon-swatch" />Pagamento de {cashLabel}</span></div>
     </div>
   );
 }

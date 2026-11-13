@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-from app.data.models import CashFlow, Observation
+from app.data.models import CashFlow, Observation, SplitEvent
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,7 @@ def build_return_frame(
     prices: list[Observation],
     cash_flows: list[CashFlow],
     factors: dict[str, list[Observation]],
+    splits: list[SplitEvent] | None = None,
 ) -> ReturnFrame:
     if not prices:
         raise ValueError("price observations are required")
@@ -49,16 +50,25 @@ def build_return_frame(
     if len({item.date for item in prices}) != len(prices):
         raise ValueError("duplicate price dates")
     factor_maps = {series_id: {item.date: item for item in observations} for series_id, observations in factors.items()}
-    flows = sorted((flow for flow in cash_flows if flow.instrument_id == instrument_id), key=lambda flow: flow.date)
+    actions = sorted(
+        [(split.date, 0, "split", float(split.factor)) for split in (splits or []) if split.instrument_id == instrument_id]
+        + [(flow.date, 1, "cash", float(flow.amount)) for flow in cash_flows if flow.instrument_id == instrument_id],
+        key=lambda item: (item[0], item[1]),
+    )
     points = []
-    flow_index = 0
+    action_index = 0
     for previous, current in zip(prices, prices[1:]):
-        while flow_index < len(flows) and flows[flow_index].date <= previous.date:
-            flow_index += 1
+        while action_index < len(actions) and actions[action_index][0] <= previous.date:
+            action_index += 1
+        shares = 1.0
         interval_flow = 0.0
-        while flow_index < len(flows) and flows[flow_index].date <= current.date:
-            interval_flow += float(flows[flow_index].amount)
-            flow_index += 1
+        while action_index < len(actions) and actions[action_index][0] <= current.date:
+            _, _, kind, value = actions[action_index]
+            if kind == "split":
+                shares *= value
+            else:
+                interval_flow += shares * value
+            action_index += 1
         if any(previous.date not in series or current.date not in series for series in factor_maps.values()):
             continue
         changes = {
@@ -66,5 +76,6 @@ def build_return_frame(
             for series_id, series in factor_maps.items()
         }
         base = float(previous.value)
-        points.append(ReturnPoint(current.date, float(current.value) / base - 1, (float(current.value) + interval_flow) / base - 1, changes))
+        adjusted_price = shares * float(current.value)
+        points.append(ReturnPoint(current.date, adjusted_price / base - 1, (adjusted_price + interval_flow) / base - 1, changes))
     return ReturnFrame(instrument_id, tuple(points))
