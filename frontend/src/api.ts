@@ -42,4 +42,14 @@ export const api = {
     factors.forEach((factor) => params.append("factor_ids", factor));
     return get<LocalNewsImpact>(`/api/local/equity/${encodeURIComponent(ticker)}/news-impact?${params}`);
   },
+  localArticleImpact: async (ticker: string, factors: string[], articlesCsv: string) => {
+    const response = await fetch(`${base}/api/local/equity/${encodeURIComponent(ticker)}/article-impact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ articles_csv: articlesCsv, factor_ids: factors }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.detail?.message ?? "Não foi possível estudar as notícias.");
+    return data as LocalNewsImpact;
+  },
 };

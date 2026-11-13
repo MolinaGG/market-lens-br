@@ -47,3 +47,12 @@
 - [x] Implement visible, concise help and event mode switch in the existing dashboard.
 - [x] Verify type check, production build, desktop and mobile views; update methodology.
 - [x] Run complete backend suite and commit.
+
+### Task 3: Verified external news
+
+**Files:** Add `backend/app/data/article_import.py`; modify local API, equity interface, tests, README and methodology.
+
+- [x] Validate publication dates, explicit time zones, HTTPS sources and file size in the local API.
+- [x] Apply the same pre-event factor models to every supplied article, keeping its cohort separate from CVM disclosures.
+- [x] Show source, date, observed and expected returns, difference and proventos mode for each article.
+- [x] Run backend and frontend verification; commit.

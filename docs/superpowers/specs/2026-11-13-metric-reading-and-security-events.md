@@ -8,6 +8,7 @@ O visitante de um portfólio quantitativo deve entender o que cada número mede,
 - O painel local de ações mostra, para cada divulgação oficial CVM elegível do emissor importado, janelas de 1, 3 e 5 pregões em dois modos: preço com desdobramentos neutralizados e retorno total bruto com dividendos/JCP. Cada modo mostra retorno observado, retorno esperado pelo modelo ajustado somente antes da divulgação e a diferença em pontos percentuais. Datas, fonte, categoria, amostra prévia e motivo de indisponibilidade ficam visíveis.
 - Fatos relevantes e comunicados ao mercado entram na lista de eventos; documentos cancelados permanecem como evidência, sem resultado de impacto. Reapresentações não duplicam um evento.
 - O cálculo usa apenas cotações importadas pelo pesquisador, no ambiente local. O retrato público não oferece cotações de ações. Links jornalísticos GDELT permanecem como contexto e não geram uma medida de impacto, pois não têm horário de publicação confirmado.
+- Um terceiro CSV opcional aceita notícias externas com título, URL HTTPS e data de publicação verificada pelo pesquisador. O cálculo local usa o mesmo modelo de fatores para cada notícia e exibe uma coorte separada da CVM. Data sem horário entra no pregão seguinte; horário com fuso respeita o fechamento das 17h. O arquivo de notícias não é persistido.
 
 ## Limites de interpretação
 
@@ -18,3 +19,4 @@ Retorno anormal é retorno observado menos retorno de referência **ex post**. U
 1. A mesma divulgação retorna janelas com e sem proventos sobre as mesmas datas, e um provento na janela muda somente o modo ajustado.
 2. A interface explica unidades e direção de R², RMSE, coeficientes, intervalos, retornos e amostra, também para ações.
 3. A interface informa claramente quando não há cotações locais, quando uma janela é indisponível ou quando a fonte é apenas menção jornalística.
+4. Notícias verificadas em CSV recebem janelas próprias de preço e retorno total, com fonte original e data de publicação; entrada sem fuso horário explícito não recebe tratamento intradiário.

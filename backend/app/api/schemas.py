@@ -163,6 +163,7 @@ class FilingImpactSchema(BaseModel):
     status: str
     source_url: str
     published_at: datetime
+    publication_time_known: bool
     effective_session: date | None
     train_count: int
     coefficients: dict[str, float] | None

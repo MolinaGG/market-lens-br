@@ -144,6 +144,7 @@ export type FilingImpact = {
   status: string;
   source_url: string;
   published_at: string;
+  publication_time_known: boolean;
   effective_session: string | null;
   train_count: number;
   coefficients: Record<string, number> | null;

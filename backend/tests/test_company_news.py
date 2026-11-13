@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.data.cvm import parse_cvm_ipe
+from app.data.article_import import parse_verified_articles
 from app.data.gdelt import parse_gdelt_metadata
 from app.data.news_store import NewsStore, refresh_news_snapshot
 from app.analysis.company_impact import study_filing_impact
@@ -18,6 +19,18 @@ from app.main import create_app
 
 FETCHED = datetime(2026, 11, 13, 18, tzinfo=timezone.utc)
 FIELDS = ["CNPJ_Companhia", "Nome_Companhia", "Codigo_CVM", "Data_Referencia", "Categoria", "Tipo", "Especie", "Assunto", "Data_Entrega", "Tipo_Apresentacao", "Protocolo_Entrega", "Versao", "Link_Download"]
+
+
+def test_verified_articles_require_source_and_time_zone_for_intraday_attribution():
+    csv_text = "published_at,title,source_url\n2026-02-01T14:00:00-03:00,Lucro divulgado,https://example.com/news/1\n2026-02-02,Nova fábrica,https://example.com/news/2\n"
+    articles = parse_verified_articles(csv_text, "PETR4")
+    assert len(articles) == 2
+    assert articles[0].publication_time_known is False
+    assert articles[1].publication_time_known is True
+    with pytest.raises(ValueError, match="timezone"):
+        parse_verified_articles("published_at,title,source_url\n2026-02-01T14:00:00,Sem fuso,https://example.com/news\n", "PETR4")
+    with pytest.raises(ValueError, match="HTTPS"):
+        parse_verified_articles("published_at,title,source_url\n2026-02-01,Link inválido,javascript:alert(1)\n", "PETR4")
 
 
 def cvm_zip(date_map=None, extra_rows=None):
@@ -196,6 +209,16 @@ def test_local_company_impact_api_links_filing_to_post_event_returns(tmp_path, m
     assert cancelled["windows"]["1"]["reason"] == "filing_cancelled"
     assert "price_cohort" in body
     assert measured["source_url"].startswith("https://www.rad.cvm.gov.br/")
+    article_csv = "published_at,title,source_url\n2026-01-31,Resultados comentados,https://example.com/article\n"
+    article_response = client.post("/api/local/equity/PETR4/article-impact", json={"articles_csv": article_csv, "factor_ids": ["BCB:SGS:1"]})
+    assert article_response.status_code == 200
+    article = article_response.json()["events"][0]
+    assert article["category"] == "Notícia verificada"
+    assert article["publication_time_known"] is False
+    assert article["effective_session"] == "2026-02-01"
+    assert article["windows"]["1"]["available"]
+    assert article["price_windows"]["1"]["session_dates"] == article["windows"]["1"]["session_dates"]
+    assert client.post("/api/local/equity/PETR4/article-impact", json={"articles_csv": "published_at,title,source_url\n2026-01-31,Sem link,javascript:alert(1)\n"}).status_code == 422
     no_flows = "ticker,ex_date,kind,amount,split_factor\n"
     assert client.post("/api/local/equity/import", json={"prices_csv": "\n".join(prices), "actions_csv": no_flows}).status_code == 200
     assert client.get("/api/local/equity/PETR4/regression").status_code == 422

@@ -45,15 +45,16 @@ export function EventGuide({ window, cohort, horizon }: { window: EventWindow | 
 }
 
 export function SecurityImpactGuide({ ticker, filing, window, cohort, horizon, mode }: { ticker: string; filing: FilingImpact; window: EventWindow | undefined; cohort: Events["cohort"][string] | undefined; horizon: number; mode: "price" | "total" }) {
-  if (!window?.available) return <Guide title={`Leitura de ${ticker} após a divulgação`} items={[{ label: "Sem medida", text: filing.status === "cancelled" ? "Documento cancelado: o histórico é preservado, mas não gera estudo de retorno." : "Faltam sessões suficientes antes ou depois da divulgação para este papel e janela." }]} />;
+  const eventLabel = filing.category === "Notícia verificada" ? "notícia" : "divulgação";
+  if (!window?.available) return <Guide title={`Leitura de ${ticker} após a ${eventLabel}`} items={[{ label: "Sem medida", text: filing.status === "cancelled" ? "Documento cancelado: o histórico é preservado, mas não gera estudo de retorno." : `Faltam sessões suficientes antes ou depois da ${eventLabel} para este papel e janela.` }]} />;
   const cashDifference = filing.windows[String(horizon)]?.observed_return != null && filing.price_windows[String(horizon)]?.observed_return != null
     ? filing.windows[String(horizon)].observed_return! - filing.price_windows[String(horizon)].observed_return!
     : null;
-  return <Guide title={`Leitura de ${ticker} após a divulgação`} items={[
+  return <Guide title={`Leitura de ${ticker} após a ${eventLabel}`} items={[
     { label: "O papel negociado", text: `${ticker} teve ${percent(window.observed_return!)} de retorno ${mode === "price" ? "de preço, com desdobramentos neutralizados" : "total bruto, incluindo dividendos e JCP"} nos ${horizon} pregões posteriores.` },
     { label: "Referência anterior", text: `O modelo ajustado com ${filing.train_count} sessões anteriores esperaria ${percent(window.benchmark_return!)} com os fatores realizados nessa janela. É um referencial ex post, não uma previsão negociável.` },
-    { label: "Diferença observada", text: `${points(window.abnormal_return!)} é retorno observado menos referência. Um valor positivo indica desempenho acima do modelo. Isso não prova que a divulgação causou o movimento.` },
-    { label: "Papel dos proventos", text: cashDifference == null ? "A comparação requer as duas janelas completas." : `${points(cashDifference)} é a diferença entre retornos observados com e sem proventos nesta janela. ${cohort?.sample_count ?? 0} divulgações comparáveis entram na média exibida.` },
-    { label: "Média de divulgações", text: `A média reúne ${cohort?.sample_count ?? 0} janelas completas sem sobreposição; ${cohort?.excluded_overlap ?? 0} janelas sobrepostas foram excluídas. O intervalo de 95% expressa a incerteza da média sob hipóteses estatísticas, não prevê outra divulgação.` },
+    { label: "Diferença observada", text: `${points(window.abnormal_return!)} é retorno observado menos referência. Um valor positivo indica desempenho acima do modelo. Isso não prova que a ${eventLabel} causou o movimento.` },
+    { label: "Papel dos proventos", text: cashDifference == null ? "A comparação requer as duas janelas completas." : `${points(cashDifference)} é a diferença entre retornos observados com e sem proventos nesta janela. ${cohort?.sample_count ?? 0} eventos comparáveis entram na média exibida.` },
+    { label: "Média de eventos", text: `A média reúne ${cohort?.sample_count ?? 0} janelas completas sem sobreposição; ${cohort?.excluded_overlap ?? 0} janelas sobrepostas foram excluídas. O intervalo de 95% expressa a incerteza da média sob hipóteses estatísticas, não prevê outro evento.` },
   ]} />;
 }

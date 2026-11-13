@@ -9,6 +9,7 @@ import numpy as np
 from app.analysis.event_study import EventStudyResult, EventWindow, study_event
 from app.analysis.returns import ReturnFrame, ReturnPoint
 from app.data.cvm import CompanyFiling
+from app.data.article_import import VerifiedArticle
 from app.data.models import MarketEvent
 
 
@@ -23,7 +24,7 @@ class FilingImpact:
 
 
 def study_filing_impact(
-    filing: CompanyFiling,
+    filing: CompanyFiling | VerifiedArticle,
     frame: ReturnFrame,
     factor_ids: tuple[str, ...],
     lookback: int = 60,
