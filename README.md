@@ -1,18 +1,20 @@
 # Market Lens BR
 
-Pesquisa quantitativa reproduzível sobre mercado brasileiro, retornos de títulos e comunicados do Copom. A demonstração pública compara uma regressão de **retorno de preço** com a mesma regressão após incorporar **cupons por unidade**, usando exatamente as mesmas datas e variáveis.
+Pesquisa quantitativa reproduzível sobre títulos públicos, fatores de mercado, commodities e divulgações de companhias brasileiras. A demonstração pública compara uma regressão de **retorno de preço** com a mesma regressão após incorporar **cupons por unidade**, usando exatamente as mesmas datas e variáveis. Uma pesquisa local permite repetir a comparação para ações com e sem dividendos e JCP.
 
 ![Painel de pesquisa do Market Lens BR](docs/assets/market-lens-dashboard.png)
 
 ## O que já funciona
 
-- Catálogo de títulos do Tesouro, USD/BRL e Selic diária, com fonte, unidade, período e versão do retrato.
+- Catálogo de títulos do Tesouro, USD/BRL, Selic e Brent diários, com fonte, unidade, frequência, período e versão do retrato. Ouro, cobre, café arábica e Brent do Banco Mundial aparecem em uma seção mensal separada.
 - Gráfico de retorno acumulado com e sem cupons; pagamentos no intervalo entre duas cotações são atribuídos ao retorno desse intervalo.
 - Regressão OLS com coeficientes, intervalos de 95%, R², erro e validação temporal fora da amostra. O botão destaca cada modo sem trocar as datas ou os fatores.
 - Comunicados oficiais do Copom ligados a janelas posteriores de 1, 3 e 5 pregões, comparados a outro título do Tesouro. A página mostra a fonte, o tamanho da amostra e a incerteza do conjunto de eventos.
-- Retrato público congelado, incluído em `backend/demo/`, e comando separado para atualizá-lo a partir das fontes oficiais.
+- Fatos relevantes e comunicados de seis companhias no arquivo público da CVM, com links aos documentos originais e contexto de cobertura detectada pelo GDELT.
+- Importação **somente local** de CSVs de preços, desdobramentos, dividendos e JCP. A regressão mantém as mesmas datas e fatores nos modos sem e com proventos; fatos relevantes podem ser ligados ao retorno posterior ajustado por um modelo treinado apenas em sessões anteriores.
+- Retratos públicos congelados de mercado e notícias em `backend/demo/`, com comandos separados para atualização.
 
-O projeto é uma análise histórica exploratória. Diferenças após um comunicado são associações temporais, não estimativas causais nem recomendações de investimento. O método completo está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
+O projeto é uma análise histórica exploratória. Diferenças após uma divulgação são associações temporais, não estimativas causais nem recomendações de investimento. A cobertura GDELT é contexto; o cálculo de impacto de ações usa apenas fatos relevantes da CVM e preços importados pelo pesquisador. O método completo está em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
 ## Executar localmente
 
@@ -25,6 +27,7 @@ python -m venv .venv
 pip install -e "backend[dev]"
 cd backend
 python -m app.data.demo
+python -m app.data.demo --database data/company_news.db --archive demo/company_news_snapshot.sqlite.gz
 uvicorn app.main:app --reload
 ```
 
@@ -42,7 +45,9 @@ Abra `http://localhost:5173`. O Vite encaminha `/api` ao backend local. Para atu
 python -m app.data.refresh --database data/market_lens.db
 ```
 
-Essa operação baixa os CSVs do Tesouro e as APIs do BCB, valida os dados e substitui o banco local somente após concluir a nova versão. O banco local fica fora do Git. Para voltar ao retrato do repositório, remova **apenas** `backend/data/market_lens.db` e execute `python -m app.data.demo` novamente.
+Essa operação consulta Tesouro, BCB, EIA e Banco Mundial, valida os dados e substitui o banco local somente após concluir a nova versão. Para atualizar documentos e contexto de cobertura, execute `python -m app.data.news_store --database data/company_news.db`. A coleta opcional GDELT respeita o limite de consultas e pode ficar indisponível; referências recentes já armazenadas são preservadas por até 14 dias. Os bancos locais ficam fora do Git.
+
+Para habilitar importação de ações em seu próprio computador, defina `LOCAL_IMPORT_ENABLED=true` no ambiente antes de iniciar a API. No PowerShell, use `$env:LOCAL_IMPORT_ENABLED="true"`; em bash, `export LOCAL_IMPORT_ENABLED=true`. O acesso é restrito ao endereço local. No painel, selecione um CSV de preços com colunas `ticker,date,close` e um CSV de ações corporativas com `ticker,ex_date,kind,amount,split_factor`; `kind` aceita `dividend`, `jcp` e `split`. Valores de preço e proventos importados ficam em `backend/data/local_equity.db`, fora do repositório e da demonstração pública. É responsabilidade do pesquisador usar arquivos que possa empregar legalmente.
 
 ## Verificar
 
@@ -53,7 +58,7 @@ cd ../frontend
 npm run build
 ```
 
-Os contratos estão disponíveis em `/api/catalog`, `/api/series/{series_id}`, `/api/research/regression` e `/api/events`; a documentação interativa fica em `/docs` no backend.
+Os contratos estão disponíveis em `/api/catalog`, `/api/series/{series_id}`, `/api/research/regression`, `/api/events` e `/api/company/news`. A pesquisa local usa `/api/local/*`; a documentação interativa fica em `/docs` no backend.
 
 ## Estrutura e próximos módulos
 
@@ -65,10 +70,10 @@ Os contratos estão disponíveis em `/api/catalog`, `/api/series/{series_id}`, `
 | `frontend/src/` | Experiência de exploração em React e TypeScript. |
 | `backend/demo/` | Retrato aberto congelado para a demonstração. |
 
-A sequência de trabalho inclui importação local de ações e proventos, fatos relevantes da CVM, contexto jornalístico e commodities. Cotações de ações não entram no retrato público enquanto não houver direitos claros de redistribuição. O desenho está em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e as fontes e licenças em [docs/FONTES.md](docs/FONTES.md).
+Cotações de ações não entram no retrato público enquanto não houver direitos claros de redistribuição. Séries mensais não são preenchidas artificialmente na regressão diária. O desenho está em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e as fontes e licenças em [docs/FONTES.md](docs/FONTES.md).
 
 ## Publicação
 
 `render.yaml` prepara o backend e descompacta o retrato público na inicialização. `frontend/vercel.json` configura o frontend; a URL de destino `/api` deve corresponder ao serviço Render criado. Nenhuma chave de Apify ou Groq é necessária para a demonstração atual. A publicação externa depende da configuração das contas de hospedagem.
 
-O código segue [LICENSE](LICENSE); o banco derivado em `backend/demo/` segue a [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) e mantém atribuição às fontes em [docs/FONTES.md](docs/FONTES.md).
+O código segue [LICENSE](LICENSE). Os dados dos retratos têm licenças próprias por fonte, detalhadas em [docs/FONTES.md](docs/FONTES.md), com atribuição e links de origem.

@@ -54,11 +54,11 @@
 
 ### Task 3: Commodities and expanded factor analysis
 
-**Files:** Create `backend/app/data/{fred,world_bank}.py`, `backend/tests/test_factors.py`; extend catalog, regression selection, and methodology.
+**Files:** Create `backend/app/data/{eia,world_bank}.py`, `backend/tests/test_factors.py`; extend catalog, regression selection, and methodology.
 
-**Interfaces:** Adapters add Brent daily and selected Pink Sheet monthly commodities with source, unit, currency, and rights metadata. The factor selector shows only factors compatible with the chosen research frequency and available dates; transforms are explicit.
+**Interfaces:** Adapters add Brent daily from EIA and selected Pink Sheet monthly commodities with source, unit, currency, and rights metadata. EIA publishes a downloadable workbook without an API key, while the FRED API requires a registered key. The factor selector shows only daily factors compatible with the daily model; monthly series remain separate until publication timing can be aligned. Transforms are explicit.
 
-- [ ] Test FRED missing observations and API failures, Pink Sheet monthly dates/units, daily-versus-monthly mismatch, and no-lookahead alignment.
+- [ ] Test EIA missing observations and source identity, Pink Sheet monthly dates/units, daily-versus-monthly mismatch, and no-lookahead alignment.
 - [ ] Run targeted test and confirm red.
 - [ ] Implement adapters, factor validation, UI controls, and source descriptions.
 - [ ] Run targeted and full tests plus frontend build; confirm green.

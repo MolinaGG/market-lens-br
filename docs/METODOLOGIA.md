@@ -2,7 +2,7 @@
 
 ## Retrato e unidades
 
-A versão incluída no repositório é `20261113T181936Z-bb5f68ed69b0`, coletada em 13 de novembro de 2026. Contém 62.209 observações de preço e fatores, 155 pagamentos por título e 100 comunicados do Copom. O recorte de preços e fatores começa aproximadamente cinco anos antes da coleta. O banco e as fontes estão identificados em [FONTES.md](FONTES.md).
+O retrato de mercado incluído no repositório é `20261113T185107Z-09e85368904f`, coletado em 13 de novembro de 2026. Contém 63.708 observações de preços e fatores, 155 pagamentos por título e 100 comunicados do Copom. O recorte começa aproximadamente cinco anos antes da coleta. Um segundo retrato, `20261113T190028Z-e1632c68dbe2`, contém 660 documentos da CVM de 2025 e 2026 para seis companhias, além de 2 links de menções GDELT para BBDC4. A cobertura jornalística é parcial e depende da disponibilidade da consulta. Fontes e hashes estão em [FONTES.md](FONTES.md).
 
 O exemplo principal usa `Tesouro Prefixado com Juros Semestrais:2033-01-01`. O preço é o **PU Venda Manhã** da base do Tesouro, em reais por título. O cupom é o campo **PU** do arquivo de pagamentos, também por unidade do mesmo tipo e vencimento; `Valor` agregado e `Quantidade` não entram no retorno individual. A data de pagamento pode não ter cotação, então o fluxo entra no intervalo `(data anterior, data atual]`.
 
@@ -17,7 +17,9 @@ retorno_total_bruto(t) = [P(t) + C] / P(t−1) − 1
 
 O retorno total é uma aproximação de um período: não reinveste cupons, não inclui impostos, custódia, spread, liquidez, inflação nem valor final de resgate. Preços ausentes ou não positivos são rejeitados; fatores sem observação nas duas datas retiram o intervalo de **ambas** as regressões.
 
-O fator USD/BRL é a variação percentual da série SGS 1, cotação de **venda** diária. A Selic diária da série SGS 11 entra como mudança em pontos percentuais da taxa `% a.d.` entre as datas. O IPCA SGS 433 não integra o retrato público: sua licença específica ainda não foi confirmada no catálogo oficial e associar o valor do mês à primeira data do mês anteciparia informação divulgada depois.
+O fator USD/BRL é a variação percentual da série SGS 1, cotação de **venda** diária. A Selic diária da série SGS 11 entra como mudança em pontos percentuais da taxa `% a.d.` entre as datas. Brent diário da EIA entra como variação percentual do preço em USD/barril. O alinhamento exige observações de cada fator em ambas as datas do intervalo e elimina o mesmo intervalo dos dois modelos quando algum fator falta. A data da cotação EIA indica o dia observado, não garante que a informação estivesse disponível naquele horário; por isso, a regressão é descritiva e a separação de teste não deve ser interpretada como simulação operacional de negociação.
+
+Ouro, cobre, café arábica e Brent da Pink Sheet do Banco Mundial são **médias mensais nominais em USD**. O primeiro dia do mês é apenas um rótulo de período no banco; o dado costuma ser publicado no mês seguinte. As séries são exibidas em cartões de comparação mensal, mas não entram na regressão diária e não são preenchidas para dias sem observação. O IPCA SGS 433 também não integra o retrato público: sua licença específica ainda não foi confirmada no catálogo oficial e associar o valor do mês à primeira data do mês anteciparia informação divulgada depois.
 
 ## Regressão e validação
 
@@ -32,3 +34,11 @@ O BCB informa a data do comunicado, mas a lista pública utilizada não informa 
 Para cada janela de 1, 3 ou 5 sessões comuns, os retornos diários brutos são compostos separadamente para o título estudado e para `Tesouro Prefixado:2029-01-01`. A diferença exibida é `retorno_observado − retorno_referência`. A coorte exclui janelas sobrepostas, calcula a média da diferença e, com pelo menos dois episódios, um intervalo bilateral de 95% baseado na distribuição t. São exigidas 20 observações comuns antes do evento. Quando faltam sessões antes ou depois, a API devolve um motivo explícito.
 
 O título de referência tem prazo e risco de mercado diferentes do título estudado. A diferença é **descritiva**, não um efeito isolado do comunicado. Não há inferência intradiária nem previsão no retrato atual.
+
+## Ações, proventos e documentos
+
+O pesquisador importa preços de fechamento, desdobramentos e proventos por ação em arquivos CSV próprios. Para um intervalo entre duas cotações, o retorno de preço considera a nova quantidade de ações após um desdobramento; o retorno total bruto soma os dividendos e JCP com data ex no intervalo, multiplicados pela quantidade de ações válida em cada pagamento. Os dois modos usam as mesmas datas de preços e fatores. Não há reinvestimento, ajuste de impostos, taxas ou verificação independente da integridade do arquivo fornecido. Sem um evento de provento completo, a comparação é desabilitada.
+
+O arquivo IPE da CVM liga fatos relevantes e comunicados ao código da companhia. A identidade do documento usa o link original, pois o protocolo pode se repetir. Reapresentações do mesmo assunto são reunidas e cancelamentos são preservados como evidência, mas excluídos do estudo de impacto. O arquivo fornece data de entrega sem horário verificável; o primeiro pregão analisado é o seguinte à entrega. O estudo quantitativo de ações considera **Fato Relevante**, jamais apenas uma menção jornalística.
+
+Para cada fato relevante elegível, um modelo de fatores é ajustado em até 60 sessões anteriores, com no mínimo 20 sessões, e aplicado às janelas posteriores de 1, 3 e 5 pregões. A diferença entre retorno total observado e retorno esperado pelo modelo é uma medida descritiva de retorno anormal. Fatores realizados no período posterior entram no referencial ex post, de modo que o resultado não é uma previsão negociável. Eventos sobrepostos e dados ausentes podem limitar a coorte. O GDELT fornece somente título, URL, domínio e horário de **detecção**; esse horário não é tratado como publicação confirmada. Um filtro exige o nome da companhia no título, mas isso não comprova relevância econômica para a ação. Links jornalísticos dão contexto e não entram no cálculo. Notícias simultâneas, seleção de eventos, qualidade das cotações importadas e mudanças dos fatores impedem interpretação causal.
