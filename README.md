@@ -2,6 +2,8 @@
 
 Pesquisa quantitativa reproduzível sobre títulos públicos, fatores de mercado, commodities e divulgações de companhias brasileiras. A demonstração pública compara uma regressão de **retorno de preço** com a mesma regressão após incorporar **cupons por unidade**, usando exatamente as mesmas datas e variáveis. Uma pesquisa local permite repetir a comparação para ações com e sem dividendos e JCP.
 
+**Demonstração pública:** [market-lens-br-web.onrender.com](https://market-lens-br-web.onrender.com/).
+
 ![Painel de pesquisa do Market Lens BR](docs/assets/market-lens-dashboard.png)
 
 ## O que já funciona
@@ -78,7 +80,7 @@ Cotações de ações não entram no retrato público enquanto não houver direi
 
 ## Publicação gratuita
 
-`render.yaml` define dois serviços no Render: uma API Python gratuita e um site estático gratuito. A API descompacta os retratos públicos na inicialização; o site encaminha `/api/*` ao serviço `market-lens-br-api`. A importação de ações está explicitamente desativada na hospedagem pública. Nenhuma chave de Apify ou Groq é necessária.
+`render.yaml` define dois serviços no Render: uma API Python gratuita e um site estático gratuito. A API descompacta os retratos públicos na inicialização; o site encaminha `/api/*` ao serviço `market-lens-br-api`. A importação de ações está explicitamente desativada na hospedagem pública. Nenhuma chave de Apify ou Groq é necessária. O endereço ativo é [https://market-lens-br-web.onrender.com](https://market-lens-br-web.onrender.com).
 
 Para publicar, conecte o repositório ao Render, crie uma **Blueprint Instance** a partir de `render.yaml` na branch desejada e escolha os serviços gratuitos descritos no arquivo. Confira as URLs geradas: se a API receber uma URL diferente de `https://market-lens-br-api.onrender.com`, atualize a rota `/api/*` no Blueprint antes de compartilhar o site. Após a implantação, verifique `/api/health` e `/api/catalog` pela URL do site, além das seções de regressão, notícias e commodities. O site estático permanece disponível; a API gratuita pode levar cerca de um minuto para acordar após 15 minutos sem acessos. O disco da API é temporário, por isso apenas os retratos versionados são usados na demonstração.
 
