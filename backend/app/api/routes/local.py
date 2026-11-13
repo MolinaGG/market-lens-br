@@ -10,8 +10,11 @@ from pydantic import BaseModel
 
 from app.analysis.regression import compare_regressions
 from app.analysis.returns import build_return_frame
-from app.api.schemas import RegressionResponseSchema, SeriesResponseSchema
+from app.analysis.company_impact import study_filing_impact
+from app.analysis.event_study import summarize_cohort
+from app.api.schemas import LocalNewsImpactSchema, RegressionResponseSchema, SeriesResponseSchema
 from app.data.equity_import import import_equity_csv, read_imported_equity
+from app.data.news_store import NewsStore
 from app.data.store import SnapshotStore
 
 
@@ -67,6 +70,7 @@ def equity_series(request: Request, ticker: str):
         "source_url": f"local://import/{imported.ticker}", "observation_count": len(imported.prices),
         "start_date": imported.prices[0].date, "end_date": imported.prices[-1].date,
         "cash_flow_count": len(imported.cash_flows),
+        "frequency": "daily", "source_rights": "local_only",
     }
     return {
         "version": "local-1", "series": info,
@@ -87,7 +91,7 @@ def equity_regression(request: Request, ticker: str, factor_ids: list[str] | Non
     if not snapshot.is_file():
         _error(503, "snapshot_missing", "O retrato público de fatores ainda não foi carregado.")
     with SnapshotStore(snapshot) as store:
-        available = {item.series_id for item in store.list_series() if item.series_id.startswith("BCB:")}
+        available = {item.series_id for item in store.list_series() if item.frequency == "daily" and not item.series_id.startswith("TESOURO:")}
         if any(factor not in available for factor in factors):
             _error(422, "factor_not_found", "Uma variável selecionada não está no retrato público.")
         observations = {factor: store.observations(factor) for factor in factors}
@@ -105,4 +109,38 @@ def equity_regression(request: Request, ticker: str, factor_ids: list[str] | Non
             "points": [asdict(point) for point in frame.points],
             "adjustment_convention": "Retorno de preço neutraliza desdobramentos; retorno total bruto inclui dividendos e JCP por ação na data ex, sem reinvestimento ou impostos.",
             "source_urls": [f"local://import/{imported.ticker}", *(observations[factor][0].source_url for factor in factors)],
+        }
+
+
+@router.get("/equity/{ticker}/news-impact", response_model=LocalNewsImpactSchema)
+def equity_news_impact(request: Request, ticker: str, factor_ids: list[str] | None = Query(default=None), limit: int = Query(default=20, ge=1, le=50)):
+    imported = _equity(request, ticker)
+    factors = factor_ids or list(DEFAULT_FACTORS)
+    snapshot = Path(request.app.state.snapshot_path)
+    news_path = Path(request.app.state.news_path)
+    if not snapshot.is_file():
+        _error(503, "snapshot_missing", "O retrato público de fatores ainda não foi carregado.")
+    if not news_path.is_file():
+        _error(503, "news_snapshot_missing", "O retrato de documentos CVM ainda não foi carregado.")
+    with SnapshotStore(snapshot) as store, NewsStore(news_path) as news:
+        available = {item.series_id for item in store.list_series() if item.frequency == "daily" and not item.series_id.startswith("TESOURO:")}
+        if not factors or any(factor not in available for factor in factors):
+            _error(422, "factor_not_found", "Uma variável selecionada não está no retrato público.")
+        frame = build_return_frame(imported.prices, imported.cash_flows, {factor: store.observations(factor) for factor in factors}, splits=imported.splits)
+        filings = [item for item in news.filings(imported.ticker, 500) if item.category == "Fato Relevante" and item.impact_eligible][:limit]
+        impacts = [study_filing_impact(filing, frame, tuple(factors)) for filing in filings]
+        event_rows = []
+        for filing, impact in zip(filings, impacts):
+            event_rows.append({
+                "filing_id": filing.filing_id, "title": filing.title, "category": filing.category,
+                "status": filing.status, "source_url": filing.source_url, "published_at": filing.published_at,
+                "effective_session": impact.event.effective_session, "train_count": impact.train_count,
+                "coefficients": impact.coefficients, "reason": impact.reason,
+                "windows": {horizon: {**asdict(window), "available": window.available} for horizon, window in impact.event.windows.items()},
+            })
+        return {
+            "version": f"{store.snapshot_version()}+{news.version()}+local-1", "ticker": imported.ticker,
+            "factor_ids": factors, "events": event_rows,
+            "cohort": {horizon: asdict(summarize_cohort([item.event for item in impacts], horizon)) for horizon in (1, 3, 5)},
+            "method_note": "Cada Fato Relevante é comparado a uma previsão de fatores ajustada somente com até 60 sessões anteriores; documentos sem horário entram no pregão seguinte. A diferença é descritiva, não causal. Metadados GDELT não entram no cálculo.",
         }

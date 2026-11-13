@@ -57,6 +57,8 @@ class SeriesInfo:
     observation_count: int
     start_date: date
     end_date: date
+    frequency: str = "daily"
+    source_rights: str = "open"
 
 
 @dataclass(frozen=True)

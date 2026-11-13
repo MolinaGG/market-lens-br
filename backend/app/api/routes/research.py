@@ -79,7 +79,7 @@ def regression(request: Request, instrument_id: str, factor_ids: list[str] | Non
             _unavailable(404, "series_not_found", "O título solicitado não existe no retrato atual.")
         if not instrument_id.startswith("TESOURO:"):
             _unavailable(422, "invalid_instrument", "A regressão requer um título do Tesouro.")
-        if any(not factor.startswith("BCB:") or _series_info(store, factor) is None for factor in factor_ids):
+        if any((_series_info(store, factor) is None or _series_info(store, factor).frequency != "daily") for factor in factor_ids):
             _unavailable(422, "insufficient_data", "Uma variável não tem observações comparáveis neste retrato.")
         prices = store.observations(instrument_id)
         flows = store.cash_flows(instrument_id)

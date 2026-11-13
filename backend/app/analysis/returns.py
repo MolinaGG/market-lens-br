@@ -39,6 +39,8 @@ def build_return_frame(
     factors: dict[str, list[Observation]],
     splits: list[SplitEvent] | None = None,
 ) -> ReturnFrame:
+    if any(series_id.startswith("WB:CMO:") for series_id in factors):
+        raise ValueError("monthly commodities cannot be aligned with daily returns")
     if not prices:
         raise ValueError("price observations are required")
     prices = sorted(prices, key=lambda item: item.date)

@@ -12,6 +12,8 @@ class SeriesSchema(BaseModel):
     start_date: date
     end_date: date
     cash_flow_count: int = 0
+    frequency: str = "daily"
+    source_rights: str = "open"
 
 
 class CatalogSchema(BaseModel):
@@ -107,5 +109,71 @@ class EventsResponseSchema(BaseModel):
     instrument_id: str
     benchmark_id: str
     events: list[EventSchema]
+    cohort: dict[int, CohortSchema]
+    method_note: str
+
+
+class CompanyFilingSchema(BaseModel):
+    filing_id: str
+    ticker: str
+    company_code: str
+    category: str
+    title: str
+    status: str
+    published_at: datetime
+    publication_time_known: bool
+    reference_date: date
+    protocol: str
+    version: int
+    source_url: str
+    source_dataset_url: str
+    fetched_at: datetime
+    source_rights: str
+    impact_eligible: bool
+
+
+class NewsItemSchema(BaseModel):
+    ticker: str
+    title: str
+    source_url: str
+    domain: str
+    language: str
+    seen_at: datetime
+    published_at: datetime | None
+    publication_time_known: bool
+    fetched_at: datetime
+    metadata_source_url: str
+    source_rights: str
+
+
+class CompanyNewsSchema(BaseModel):
+    version: str
+    fetched_at: datetime
+    ticker: str
+    company_code: str
+    filings: list[CompanyFilingSchema]
+    articles: list[NewsItemSchema]
+    method_note: str
+
+
+class FilingImpactSchema(BaseModel):
+    filing_id: str
+    title: str
+    category: str
+    status: str
+    source_url: str
+    published_at: datetime
+    effective_session: date | None
+    train_count: int
+    coefficients: dict[str, float] | None
+    reason: str | None
+    windows: dict[int, EventWindowSchema]
+
+
+class LocalNewsImpactSchema(BaseModel):
+    version: str
+    ticker: str
+    factor_ids: list[str]
+    events: list[FilingImpactSchema]
     cohort: dict[int, CohortSchema]
     method_note: str

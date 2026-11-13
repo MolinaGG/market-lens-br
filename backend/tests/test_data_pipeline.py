@@ -8,6 +8,7 @@ import pytest
 from app.data.bcb import parse_sgs
 from app.data.copom import parse_comunicados
 from app.data.refresh import refresh_snapshot
+from app.data.models import Observation
 from app.data.store import SnapshotStore
 from app.data.tesouro import parse_coupons, parse_prices
 
@@ -53,12 +54,15 @@ def test_refresh_is_atomic_and_store_reads_typed_records(tmp_path, monkeypatch):
     sgs = json.dumps([{"data": "02/01/2026", "valor": "0.050788"}]).encode()
     copom = json.dumps({"conteudo": [{"nro_reuniao": 282, "dataReferencia": "2026-01-02", "titulo": "Copom"}]}).encode()
     monkeypatch.setattr(refresh, "fetch_sources", lambda: (price, coupon, {11: sgs}, copom))
+    monkeypatch.setattr(refresh, "fetch_commodity_sources", lambda: (b"brent", b"monthly"))
+    monkeypatch.setattr(refresh, "parse_eia_brent", lambda raw, fetched: [Observation("EIA:BRENT", date(2026, 1, 2), Decimal("70"), "https://www.eia.gov/", fetched)])
+    monkeypatch.setattr(refresh, "parse_world_bank_monthly", lambda raw, fetched: [Observation("WB:CMO:GOLD", date(2026, 1, 1), Decimal("2500"), "https://www.worldbank.org/", fetched)])
     db = tmp_path / "snapshot.sqlite"
     summary = refresh_snapshot(db, FETCHED)
-    assert summary.observation_count == 3
+    assert summary.observation_count == 5
     with SnapshotStore(db) as store:
         series = store.list_series()
-        assert len(series) == 2
+        assert len(series) == 4
         instrument = next(s.series_id for s in series if s.series_id.startswith("TESOURO:"))
         assert len(store.observations(instrument)) == 2
         assert store.cash_flows(instrument)[0].amount == Decimal("48.123456")

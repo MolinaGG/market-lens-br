@@ -7,6 +7,8 @@ export type SeriesInfo = {
   start_date: string;
   end_date: string;
   cash_flow_count: number;
+  frequency: "daily" | "monthly";
+  source_rights: string;
 };
 
 export type Catalog = {
@@ -89,5 +91,71 @@ export type Events = {
     mean_abnormal_return: number | null;
     confidence_interval: [number, number] | null;
   }>;
+  method_note: string;
+};
+
+export type CompanyFiling = {
+  filing_id: string;
+  ticker: string;
+  company_code: string;
+  category: string;
+  title: string;
+  status: "active" | "refiled" | "cancelled";
+  published_at: string;
+  publication_time_known: boolean;
+  reference_date: string;
+  protocol: string;
+  version: number;
+  source_url: string;
+  source_dataset_url: string;
+  fetched_at: string;
+  source_rights: string;
+  impact_eligible: boolean;
+};
+
+export type NewsItem = {
+  ticker: string;
+  title: string;
+  source_url: string;
+  domain: string;
+  language: string;
+  seen_at: string;
+  published_at: string | null;
+  publication_time_known: boolean;
+  fetched_at: string;
+  metadata_source_url: string;
+  source_rights: string;
+};
+
+export type CompanyNews = {
+  version: string;
+  fetched_at: string;
+  ticker: string;
+  company_code: string;
+  filings: CompanyFiling[];
+  articles: NewsItem[];
+  method_note: string;
+};
+
+export type FilingImpact = {
+  filing_id: string;
+  title: string;
+  category: string;
+  status: string;
+  source_url: string;
+  published_at: string;
+  effective_session: string | null;
+  train_count: number;
+  coefficients: Record<string, number> | null;
+  reason: string | null;
+  windows: Record<string, EventWindow>;
+};
+
+export type LocalNewsImpact = {
+  version: string;
+  ticker: string;
+  factor_ids: string[];
+  events: FilingImpact[];
+  cohort: Events["cohort"];
   method_note: string;
 };

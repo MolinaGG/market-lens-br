@@ -1,4 +1,4 @@
-import type { Catalog, Events, Regression, Series } from "./types";
+import type { Catalog, CompanyNews, Events, LocalNewsImpact, Regression, Series } from "./types";
 
 const base = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
@@ -35,5 +35,11 @@ export const api = {
     const params = new URLSearchParams();
     factors.forEach((factor) => params.append("factor_ids", factor));
     return get<Regression>(`/api/local/equity/${encodeURIComponent(ticker)}/regression?${params}`);
+  },
+  companyNews: (ticker: string, signal?: AbortSignal) => get<CompanyNews>(`/api/company/news?ticker=${encodeURIComponent(ticker)}`, signal),
+  localNewsImpact: (ticker: string, factors: string[]) => {
+    const params = new URLSearchParams();
+    factors.forEach((factor) => params.append("factor_ids", factor));
+    return get<LocalNewsImpact>(`/api/local/equity/${encodeURIComponent(ticker)}/news-impact?${params}`);
   },
 };

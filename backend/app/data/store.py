@@ -64,11 +64,24 @@ class SnapshotStore:
             if sid.startswith("TESOURO:"):
                 parts = sid.split(":")
                 name, unit = f"{parts[1]} · {parts[2]}", "BRL por título"
-            else:
+                frequency, rights = "daily", "ODbL"
+            elif sid.startswith("BCB:"):
                 from app.data.bcb import SGS_NAMES
 
                 name, unit = SGS_NAMES[int(sid.rsplit(":", 1)[1])]
-            result.append(SeriesInfo(sid, name, unit, row["source_url"], row["n"], date.fromisoformat(row["first_date"]), date.fromisoformat(row["last_date"])))
+                frequency, rights = "daily", "ODbL"
+            elif sid == "EIA:BRENT":
+                name, unit, frequency, rights = "Petróleo Brent · EIA", "USD/barril", "daily", "public_domain"
+            elif sid.startswith("WB:CMO:"):
+                from app.data.world_bank import COMMODITIES
+
+                mapping = {item[0]: (item[1], label) for label, item in COMMODITIES.items()}
+                name, _ = mapping[sid]
+                units = {"WB:CMO:BRENT": "USD/barril", "WB:CMO:GOLD": "USD/onça troy", "WB:CMO:COPPER": "USD/tonelada", "WB:CMO:COFFEE_ARABICA": "USD/kg"}
+                unit, frequency, rights = units[sid], "monthly", "CC-BY-4.0"
+            else:
+                raise ValueError(f"Unknown series ID: {sid}")
+            result.append(SeriesInfo(sid, name, unit, row["source_url"], row["n"], date.fromisoformat(row["first_date"]), date.fromisoformat(row["last_date"]), frequency, rights))
         return result
 
     def observations(self, series_id: str, start: date | None = None, end: date | None = None) -> list[Observation]:

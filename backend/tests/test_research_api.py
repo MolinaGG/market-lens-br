@@ -34,6 +34,12 @@ def research_client(tmp_path, monkeypatch):
     coupon = f"Tipo Titulo;Vencimento do Titulo;Data Resgate;PU;Quantidade;Valor\n{TITLE};{MATURITY};16/01/2026;2,000000;1;2"
     news = {"conteudo": [{"nro_reuniao": 282, "dataReferencia": "2026-01-25", "titulo": "Copom decide sobre Selic"}]}
     monkeypatch.setattr(refresh, "fetch_sources", lambda: ("\n".join(prices).encode(), coupon.encode(), {1: json.dumps(usd_rows).encode(), 11: json.dumps(selic_rows).encode()}, json.dumps(news).encode()))
+    from app.data.models import Observation
+    from decimal import Decimal
+
+    monkeypatch.setattr(refresh, "fetch_commodity_sources", lambda: (b"brent", b"monthly"))
+    monkeypatch.setattr(refresh, "parse_eia_brent", lambda raw, fetched: [Observation("EIA:BRENT", start + timedelta(days=i), Decimal(str(70 + i / 10)), "https://www.eia.gov/", fetched) for i in range(45)])
+    monkeypatch.setattr(refresh, "parse_world_bank_monthly", lambda raw, fetched: [Observation("WB:CMO:GOLD", date(2026, 1, 1), Decimal("2500"), "https://www.worldbank.org/", fetched)])
     path = tmp_path / "snapshot.sqlite"
     refresh_snapshot(path, datetime(2026, 2, 20, tzinfo=timezone.utc))
     return TestClient(create_app(snapshot_path=path))
@@ -45,12 +51,19 @@ def test_catalog_series_regression_and_events(tmp_path, monkeypatch):
     assert catalog["version"]
     assert any(item["series_id"] == INSTRUMENT for item in catalog["instruments"])
     assert catalog["benchmark_id"] == BENCHMARK
+    assert next(item for item in catalog["factors"] if item["series_id"] == "EIA:BRENT")["frequency"] == "daily"
+    assert next(item for item in catalog["factors"] if item["series_id"] == "WB:CMO:GOLD")["frequency"] == "monthly"
     series = client.get(f"/api/series/{INSTRUMENT}").json()
     assert len(series["observations"]) == 45
     assert series["cash_flows"][0]["amount"] == 2
     assert "tesourotransparente.gov.br" in series["series"]["source_url"]
     regression = client.get("/api/research/regression", params={"instrument_id": INSTRUMENT}).json()
     assert regression["price"]["sample_dates"] == regression["total"]["sample_dates"]
+    with_brent = client.get("/api/research/regression", params={"instrument_id": INSTRUMENT, "factor_ids": ["BCB:SGS:1", "EIA:BRENT"]})
+    assert with_brent.status_code == 200
+    assert "EIA:BRENT" in with_brent.json()["total"]["coefficients"]
+    monthly = client.get("/api/research/regression", params={"instrument_id": INSTRUMENT, "factor_ids": "WB:CMO:GOLD"})
+    assert monthly.status_code == 422
     assert regression["price"]["holdout_count"] > 1
     assert regression["price"]["r_squared"] != regression["total"]["r_squared"]
     assert regression["points"][13]["price_return"] != regression["points"][13]["total_return"]

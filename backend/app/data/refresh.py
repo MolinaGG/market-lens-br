@@ -13,9 +13,11 @@ import httpx
 
 from app.data.bcb import parse_sgs, sgs_url
 from app.data.copom import COMUNICADOS_URL, parse_comunicados
+from app.data.eia import BRENT_URL, parse_eia_brent
 from app.data.models import RefreshSummary
 from app.data.store import SCHEMA
 from app.data.tesouro import COUPONS_URL, PRICES_URL, parse_coupons, parse_prices
+from app.data.world_bank import MONTHLY_URL, parse_world_bank_monthly
 
 
 def fetch_sources() -> tuple[bytes, bytes, dict[int, bytes], bytes]:
@@ -37,20 +39,32 @@ def fetch_sources() -> tuple[bytes, bytes, dict[int, bytes], bytes]:
     return prices, coupons, bcb, comunicados
 
 
+def fetch_commodity_sources() -> tuple[bytes, bytes]:
+    with httpx.Client(timeout=httpx.Timeout(90, connect=20), follow_redirects=True, headers={"User-Agent": "market-lens-br/0.1 (open research)"}) as client:
+        brent = client.get(BRENT_URL)
+        brent.raise_for_status()
+        monthly = client.get(MONTHLY_URL)
+        monthly.raise_for_status()
+    return brent.content, monthly.content
+
+
 def refresh_snapshot(database_path: Path, fetched_at: datetime | None = None) -> RefreshSummary:
     fetched_at = fetched_at or datetime.now(timezone.utc)
     if fetched_at.tzinfo is None:
         raise ValueError("fetched_at must include a timezone")
     prices_data, coupon_data, bcb_data, copom_data = fetch_sources()
+    brent_data, monthly_data = fetch_commodity_sources()
     cutoff = fetched_at.date() - timedelta(days=365 * 5 + 2)
     prices = [x for x in parse_prices(prices_data, fetched_at) if x.date >= cutoff]
     coupons = [x for x in parse_coupons(coupon_data, fetched_at) if x.date >= cutoff]
     observations = prices + [x for number, raw in bcb_data.items() for x in parse_sgs(raw, number, fetched_at)]
+    observations += [x for x in parse_eia_brent(brent_data, fetched_at) if x.date >= cutoff]
+    observations += [x for x in parse_world_bank_monthly(monthly_data, fetched_at) if x.date >= cutoff]
     events = parse_comunicados(copom_data, fetched_at)
-    if not prices or not coupons or not events or not any(x.series_id.startswith("BCB:") for x in observations):
+    if not prices or not coupons or not events or not any(x.series_id.startswith("BCB:") for x in observations) or not any(x.series_id == "EIA:BRENT" for x in observations) or not any(x.series_id.startswith("WB:") for x in observations):
         raise ValueError("Official sources returned an incomplete research snapshot")
     digest = hashlib.sha256()
-    for raw in (prices_data, coupon_data, *(bcb_data[n] for n in sorted(bcb_data)), copom_data):
+    for raw in (prices_data, coupon_data, *(bcb_data[n] for n in sorted(bcb_data)), copom_data, brent_data, monthly_data):
         digest.update(raw)
     version = f"{fetched_at:%Y%m%dT%H%M%SZ}-{digest.hexdigest()[:12]}"
     path = Path(database_path)
